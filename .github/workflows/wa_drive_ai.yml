@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Google Drive Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .chat-bubble {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .typing-indicator {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .file-upload-area {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        .file-upload-area.dragover {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">WhatsApp Google Drive Assistant</h1>
+            <p class="text-gray-600">Manage your Google Drive files through WhatsApp-style commands</p>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Chat Interface -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- Chat Header -->
+                    <div class="bg-green-600 text-white p-4 flex items-center">
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Drive Assistant</h3>
+                            <p class="text-sm text-green-100">Online</p>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div id="chatContainer" class="h-96 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                        <div class="chat-bubble">
+                            <div class="bg-green-100 rounded-lg p-3 max-w-xs">
+                                <p class="text-sm">👋 Hi! I'm your Google Drive assistant. Send me commands like:</p>
+                                <p class="text-xs text-gray-600 mt-1">LIST /Documents</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Upload Area -->
+                    <div id="fileUploadArea" class="file-upload-area p-4 m-4 rounded-lg text-center">
+                        <input type="file" id="fileInput" class="hidden" multiple>
+                        <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <p class="text-gray-600">Drop files here or click to upload</p>
+                        <p class="text-xs text-gray-500">Then send: UPLOAD /FolderName filename.ext</p>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="p-4 border-t bg-white">
+                        <div class="flex space-x-2">
+                            <input type="text" id="messageInput" placeholder="Type a command..." class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <button id="sendButton" class="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Command Reference & Status -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Google Drive Status -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
+                        </svg>
+                        Google Drive Status
+                    </h3>
+                    <div id="driveStatus" class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Connection</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Connected</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Storage Used</span>
+                            <span class="text-sm font-medium">2.3 GB / 15 GB</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 15%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Reference -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Available Commands</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="border-l-4 border-blue-500 pl-3">
+                            <code class="text-blue-600 font-mono">LIST /FolderName</code>
+                            <p class="text-gray-600 text-xs">Lists files in folder</p>
+                        </div>
+                        <div class="border-l-4 border-red-500 pl-3">
+                            <code class="text-red-600 font-mono">DELETE /path/file.pdf</code>
+                            <p class="text-gray-600 text-xs">Deletes specified file</p>
+                        </div>
+                        <div class="border-l-4 border-green-500 pl-3">
+                            <code class="text-green-600 font-mono">MOVE /from/file.pdf /to</code>
+                            <p class="text-gray-600 text-xs">Moves file to new location</p>
+                        </div>
+                        <div class="border-l-4 border-purple-500 pl-3">
+                            <code class="text-purple-600 font-mono">SUMMARY /FolderName</code>
+                            <p class="text-gray-600 text-xs">AI-powered folder summary</p>
+                        </div>
+                        <div class="border-l-4 border-yellow-500 pl-3">
+                            <code class="text-yellow-600 font-mono">RENAME old.pdf new.pdf</code>
+                            <p class="text-gray-600 text-xs">Renames a file</p>
+                        </div>
+                        <div class="border-l-4 border-indigo-500 pl-3">
+                            <code class="text-indigo-600 font-mono">UPLOAD /folder name.pdf</code>
+                            <p class="text-gray-600 text-xs">Uploads file to folder</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+                    <div id="recentActivity" class="space-y-3 text-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span class="text-gray-600">Connected to Drive</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock Google Drive data
+        const mockDriveData = {
+            '/Documents': [
+                { name: 'report.pdf', size: '2.3 MB', modified: '2024-12-20', type: 'pdf' },
+                { name: 'presentation.pptx', size: '5.1 MB', modified: '2024-12-19', type: 'pptx' },
+                { name: 'notes.txt', size: '15 KB', modified: '2024-12-18', type: 'txt' }
+            ],
+            '/Photos': [
+                { name: 'vacation.jpg', size: '3.2 MB', modified: '2024-12-15', type: 'jpg' },
+                { name: 'family.png', size: '1.8 MB', modified: '2024-12-14', type: 'png' }
+            ],
+            '/Reports': [
+                { name: 'monthly_report.pdf', size: '1.5 MB', modified: '2024-12-22', type: 'pdf' },
+                { name: 'analysis.docx', size: '890 KB', modified: '2024-12-21', type: 'docx' }
+            ],
+            '/Archive': []
+        };
+
+        let uploadedFiles = [];
+        let chatHistory = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            addBotMessage("Welcome! I'm your Google Drive assistant. Try commands like 'LIST /Documents' or upload a file!");
+        });
+
+        function setupEventListeners() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const fileInput = document.getElementById('fileInput');
+            const fileUploadArea = document.getElementById('fileUploadArea');
+
+            // Send message
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // File upload
+            fileUploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Drag and drop
+            fileUploadArea.addEventListener('dragover', handleDragOver);
+            fileUploadArea.addEventListener('dragleave', handleDragLeave);
+            fileUploadArea.addEventListener('drop', handleFileDrop);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            addUserMessage(message);
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Process command after delay
+            setTimeout(() => {
+                hideTypingIndicator();
+                processCommand(message);
+            }, 1500);
+        }
+
+        function processCommand(command) {
+            const cmd = command.toUpperCase();
+            
+            if (cmd.startsWith('LIST ')) {
+                handleListCommand(command);
+            } else if (cmd.startsWith('DELETE ')) {
+                handleDeleteCommand(command);
+            } else if (cmd.startsWith('MOVE ')) {
+                handleMoveCommand(command);
+            } else if (cmd.startsWith('SUMMARY ')) {
+                handleSummaryCommand(command);
+            } else if (cmd.startsWith('RENAME ')) {
+                handleRenameCommand(command);
+            } else if (cmd.startsWith('UPLOAD ')) {
+                handleUploadCommand(command);
+            } else {
+                addBotMessage("❌ Unknown command. Try LIST, DELETE, MOVE, SUMMARY, RENAME, or UPLOAD.");
+            }
+
+            addToRecentActivity(command);
+        }
+
+        function handleListCommand(command) {
+            const folderPath = command.substring(5).trim();
+            const files = mockDriveData[folderPath];
+
+            if (!files) {
+                addBotMessage(`❌ Folder '${folderPath}' not found.`);
+                return;
+            }
+
+            if (files.length === 0) {
+                addBotMessage(`📁 Folder '${folderPath}' is empty.`);
+                return;
+            }
+
+            let response = `📁 Files in '${folderPath}':\n\n`;
+            files.forEach((file, index) => {
+                const icon = getFileIcon(file.type);
+                response += `${icon} ${file.name}\n`;
+                response += `   Size: ${file.size} | Modified: ${file.modified}\n\n`;
+            });
+
+            addBotMessage(response);
+        }
+
+        function handleDeleteCommand(command) {
+            const filePath = command.substring(7).trim();
+            const pathParts = filePath.split('/');
+            const fileName = pathParts[pathParts.length - 1];
+            const folderPath = '/' + pathParts.slice(1, -1).join('/');
+
+            if (mockDriveData[folderPath]) {
+                const fileIndex = mockDriveData[folderPath].findIndex(f => f.name === fileName);
+                if (fileIndex !== -1) {
+                    mockDriveData[folderPath].splice(fileIndex, 1);
+                    addBotMessage(`✅ Successfully deleted '${fileName}' from '${folderPath}'.`);
+                } else {
+                    addBotMessage(`❌ File '${fileName}' not found in '${folderPath}'.`);
+                }
+            } else {
+                addBotMessage(`❌ Folder '${folderPath}' not found.`);
+            }
+        }
+
+        function handleMoveCommand(command) {
+            const parts = command.substring(5).trim().split(' ');
+            if (parts.length < 2) {
+                addBotMessage("❌ Invalid MOVE command. Use: MOVE /from/file.pdf /to");
+                return;
+            }
+
+            const fromPath = parts[0];
+            const toPath = parts[1];
+            const pathParts = fromPath.split('/');
+            const fileName = pathParts[pathParts.length - 1];
+            const fromFolder = '/' + pathParts.slice(1, -1).join('/');
+
+            if (mockDriveData[fromFolder] && mockDriveData[toPath]) {
+                const fileIndex = mockDriveData[fromFolder].findIndex(f => f.name === fileName);
+                if (fileIndex !== -1) {
+                    const file = mockDriveData[fromFolder].splice(fileIndex, 1)[0];
+                    mockDriveData[toPath].push(file);
+                    addBotMessage(`✅ Successfully moved '${fileName}' from '${fromFolder}' to '${toPath}'.`);
+                } else {
+                    addBotMessage(`❌ File '${fileName}' not found in '${fromFolder}'.`);
+                }
+            } else {
+                addBotMessage("❌ Source or destination folder not found.");
+            }
+        }
+
+        function handleSummaryCommand(command) {
+            const folderPath = command.substring(8).trim();
+            const files = mockDriveData[folderPath];
+
+            if (!files) {
+                addBotMessage(`❌ Folder '${folderPath}' not found.`);
+                return;
+            }
+
+            // Simulate AI processing
+            addBotMessage("🤖 Analyzing files with AI...");
+            
+            setTimeout(() => {
+                let summary = `📊 AI Summary for '${folderPath}':\n\n`;
+                summary += `📁 Total Files: ${files.length}\n`;
+                
+                const fileTypes = {};
+                let totalSize = 0;
+                
+                files.forEach(file => {
+                    fileTypes[file.type] = (fileTypes[file.type] || 0) + 1;
+                    totalSize += parseFloat(file.size.replace(/[^\d.]/g, ''));
+                });
+
+                summary += `💾 Total Size: ~${totalSize.toFixed(1)} MB\n`;
+                summary += `📄 File Types: ${Object.keys(fileTypes).join(', ')}\n\n`;
+
+                if (files.some(f => f.type === 'pdf')) {
+                    summary += "📋 Content Analysis:\n";
+                    summary += "• Found PDF documents likely containing reports or documentation\n";
+                    summary += "• Recent activity suggests active project work\n";
+                    summary += "• Recommend organizing by date or project type\n";
+                }
+
+                addBotMessage(summary);
+            }, 2000);
+        }
+
+        function handleRenameCommand(command) {
+            const parts = command.substring(7).trim().split(' ');
+            if (parts.length < 2) {
+                addBotMessage("❌ Invalid RENAME command. Use: RENAME oldname.pdf newname.pdf");
+                return;
+            }
+
+            const oldName = parts[0];
+            const newName = parts.slice(1).join(' ');
+
+            // Find file in any folder
+            let found = false;
+            for (const [folderPath, files] of Object.entries(mockDriveData)) {
+                const fileIndex = files.findIndex(f => f.name === oldName);
+                if (fileIndex !== -1) {
+                    files[fileIndex].name = newName;
+                    addBotMessage(`✅ Successfully renamed '${oldName}' to '${newName}' in '${folderPath}'.`);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                addBotMessage(`❌ File '${oldName}' not found in any folder.`);
+            }
+        }
+
+        function handleUploadCommand(command) {
+            const parts = command.substring(7).trim().split(' ');
+            if (parts.length < 2) {
+                addBotMessage("❌ Invalid UPLOAD command. Use: UPLOAD /folder filename.ext");
+                return;
+            }
+
+            const folderPath = parts[0];
+            const fileName = parts.slice(1).join(' ');
+
+            if (!mockDriveData[folderPath]) {
+                addBotMessage(`❌ Folder '${folderPath}' not found.`);
+                return;
+            }
+
+            if (uploadedFiles.length === 0) {
+                addBotMessage("❌ No files uploaded. Please upload a file first, then use the UPLOAD command.");
+                return;
+            }
+
+            // Simulate file upload
+            const uploadedFile = uploadedFiles[0];
+            const newFile = {
+                name: fileName,
+                size: formatFileSize(uploadedFile.size),
+                modified: new Date().toISOString().split('T')[0],
+                type: fileName.split('.').pop().toLowerCase()
+            };
+
+            mockDriveData[folderPath].push(newFile);
+            uploadedFiles = [];
+
+            addBotMessage(`✅ Successfully uploaded '${fileName}' to '${folderPath}'.`);
+            updateFileUploadArea();
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            handleFiles(files);
+        }
+
+        function handleFileDrop(event) {
+            event.preventDefault();
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            fileUploadArea.classList.remove('dragover');
+            
+            const files = Array.from(event.dataTransfer.files);
+            handleFiles(files);
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            fileUploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            fileUploadArea.classList.remove('dragover');
+        }
+
+        function handleFiles(files) {
+            uploadedFiles = files;
+            updateFileUploadArea();
+            addBotMessage(`📎 ${files.length} file(s) ready for upload. Use: UPLOAD /folder filename.ext`);
+        }
+
+        function updateFileUploadArea() {
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            
+            if (uploadedFiles.length > 0) {
+                fileUploadArea.innerHTML = `
+                    <div class="text-green-600">
+                        <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="font-medium">${uploadedFiles.length} file(s) ready</p>
+                        <p class="text-xs text-gray-500">Use UPLOAD command to save to Drive</p>
+                    </div>
+                `;
+            } else {
+                fileUploadArea.innerHTML = `
+                    <input type="file" id="fileInput" class="hidden" multiple>
+                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <p class="text-gray-600">Drop files here or click to upload</p>
+                    <p class="text-xs text-gray-500">Then send: UPLOAD /FolderName filename.ext</p>
+                `;
+                
+                // Re-attach event listeners
+                const newFileInput = document.getElementById('fileInput');
+                newFileInput.addEventListener('change', handleFileSelect);
+                fileUploadArea.addEventListener('click', () => newFileInput.click());
+            }
+        }
+
+        function addUserMessage(message) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-bubble flex justify-end';
+            messageDiv.innerHTML = `
+                <div class="bg-green-600 text-white rounded-lg p-3 max-w-xs">
+                    <p class="text-sm">${message}</p>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addBotMessage(message) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-bubble';
+            messageDiv.innerHTML = `
+                <div class="bg-white border rounded-lg p-3 max-w-md">
+                    <p class="text-sm whitespace-pre-line">${message}</p>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chatContainer = document.getElementById('chatContainer');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="bg-white border rounded-lg p-3 max-w-xs">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function addToRecentActivity(command) {
+            const recentActivity = document.getElementById('recentActivity');
+            const activityDiv = document.createElement('div');
+            activityDiv.className = 'flex items-center space-x-3';
+            activityDiv.innerHTML = `
+                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span class="text-gray-600">${command.substring(0, 30)}${command.length > 30 ? '...' : ''}</span>
+            `;
+            recentActivity.insertBefore(activityDiv, recentActivity.firstChild);
+            
+            // Keep only last 5 activities
+            while (recentActivity.children.length > 5) {
+                recentActivity.removeChild(recentActivity.lastChild);
+            }
+        }
+
+        function getFileIcon(type) {
+            const icons = {
+                'pdf': '📄',
+                'docx': '📝',
+                'doc': '📝',
+                'txt': '📄',
+                'pptx': '📊',
+                'ppt': '📊',
+                'xlsx': '📈',
+                'xls': '📈',
+                'jpg': '🖼️',
+                'jpeg': '🖼️',
+                'png': '🖼️',
+                'gif': '🖼️'
+            };
+            return icons[type] || '📁';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'989add6cf55117a7',t:'MTc1OTY0NTc3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
